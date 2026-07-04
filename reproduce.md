@@ -26,8 +26,9 @@ ollama pull qwen3:4b-instruct
 ## 2. Set up the project
 
 ```bash
-# Go into the project folder (after cloning/copying it)
-cd whisperflow-local
+# Clone the repository from GitHub and enter it
+git clone https://github.com/anesriad/VoiceBud-Local-Riad.git
+cd VoiceBud-Local-Riad
 
 # Create an isolated Python environment inside the project
 python3.12 -m venv .venv

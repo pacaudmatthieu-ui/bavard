@@ -7,16 +7,23 @@ from AppKit import (
     NSBackingStoreBuffered,
     NSBezierPath,
     NSColor,
+    NSFont,
+    NSFontAttributeName,
+    NSForegroundColorAttributeName,
+    NSMutableParagraphStyle,
     NSPanel,
+    NSParagraphStyleAttributeName,
     NSScreen,
     NSTimer,
     NSView,
     NSWindowStyleMaskBorderless,
     NSWindowStyleMaskNonactivatingPanel,
 )
+from Foundation import NSString
 
 BAR_COUNT = 24
-PANEL_W, PANEL_H = 260, 56
+PANEL_W, PANEL_H = 260, 74
+LABEL_H = 20  # bottom strip reserved for the "VoiceBud" label
 
 
 class WaveView(NSView):
@@ -29,18 +36,32 @@ class WaveView(NSView):
 
     def drawRect_(self, rect):
         b = self.bounds()
-        NSColor.colorWithCalibratedWhite_alpha_(0.08, 0.88).setFill()
+        # black rounded background (high alpha for readability)
+        NSColor.colorWithCalibratedWhite_alpha_(0.0, 0.92).setFill()
         NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(b, 16, 16).fill()
+        # purple waveform bars, drawn above the label strip
         pad, gap = 16, 3
         bw = (b.size.width - 2 * pad - gap * (BAR_COUNT - 1)) / BAR_COUNT
-        NSColor.colorWithCalibratedRed_green_blue_alpha_(1.0, 0.62, 0.15, 1.0).setFill()
+        wave_h = b.size.height - LABEL_H
+        NSColor.colorWithCalibratedRed_green_blue_alpha_(0.64, 0.42, 1.0, 1.0).setFill()
         for i, lv in enumerate(self.levels):
-            bh = max(4, min(1.0, lv * 10) * (b.size.height - 22))
+            bh = max(4, min(1.0, lv * 10) * (wave_h - 18))
             x = pad + i * (bw + gap)
-            y = (b.size.height - bh) / 2
+            y = LABEL_H + (wave_h - bh) / 2
             NSBezierPath.bezierPathWithRoundedRect_xRadius_yRadius_(
                 ((x, y), (bw, bh)), bw / 2, bw / 2
             ).fill()
+        # "VoiceBud" label — white, centered at the bottom
+        style = NSMutableParagraphStyle.alloc().init()
+        style.setAlignment_(1)  # center
+        attrs = {
+            NSFontAttributeName: NSFont.boldSystemFontOfSize_(11),
+            NSForegroundColorAttributeName: NSColor.whiteColor(),
+            NSParagraphStyleAttributeName: style,
+        }
+        NSString.stringWithString_("VoiceBud").drawInRect_withAttributes_(
+            ((0, 4), (b.size.width, 14)), attrs
+        )
 
 
 class Overlay:
