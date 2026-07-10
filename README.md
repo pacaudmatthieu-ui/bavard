@@ -9,6 +9,7 @@ Appuyez sur `ctrl+shift` dans n'importe quelle app → parlez → appuyez à nou
 - **Français d'abord** : Whisper `small` multilingue, langue forcée en français pour une fiabilité totale
 - **Mise en forme automatique** : ponctuation, majuscules, et paragraphes aérés sur les textes longs
 - **Suppression des tics de langage** : euh, ben, bah, hein… y compris en début de phrase
+- **Commandes vocales** : dites « à la ligne », « nouveau paragraphe », « point d'interrogation », « point d'exclamation », « points de suspension », « point-virgule » ou « deux-points » pour insérer la ponctuation correspondante
 - **Micro discret** : le micro ne s'ouvre que pendant la dictée (pas d'icône orange en permanence)
 - **Pastille d'état** : ondes violettes pendant l'enregistrement, roue « Traitement… » pendant la transcription — vous savez toujours où ça en est
 - **Collage fiable** : le presse-papiers est préservé et restauré en arrière-plan
