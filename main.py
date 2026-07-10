@@ -93,7 +93,7 @@ def main():
         keep_open=cfg["audio"].get("keep_open", True),
     )
     rec.start_stream()
-    overlay = Overlay(lambda: rec.level)
+    overlay = Overlay(rec.bands)
 
     def on_press():
         rec.start()

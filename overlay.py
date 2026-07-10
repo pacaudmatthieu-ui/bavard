@@ -2,7 +2,6 @@
 digital-rain waveform (green 0/1 columns on near-black), shown while the
 push-to-talk chord is held. After recording it switches to a spinner until
 the text is injected. Pure AppKit via pyobjc."""
-import collections
 import math
 import random
 
@@ -25,13 +24,13 @@ from AppKit import (
 )
 from Foundation import NSString
 
-BAR_COUNT = 24
+BAR_COUNT = 36
 PANEL_W, PANEL_H = 260, 74
 LABEL_H = 20   # bottom strip reserved for the app-name label
-CHAR_H = 9     # height of one Matrix glyph row
+CHAR_H = 7     # height of one Matrix glyph row
 # half-width katakana + digits, like the film's digital rain
 MATRIX_CHARS = "ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ0123456789"
-MAX_ROWS = 6   # max glyphs per column in the wave area
+MAX_ROWS = 7   # max glyphs per column in the wave area
 
 
 def _green(r, g, bl, a):
@@ -43,10 +42,11 @@ class WaveView(NSView):
         self = objc.super(WaveView, self).initWithFrame_(frame)
         if self is None:
             return None
-        self.levels = collections.deque([0.02] * BAR_COUNT, maxlen=BAR_COUNT)
+        # fixed equalizer: one level per column (bass left, treble right)
+        self.cols = [0.0] * BAR_COUNT
         self.mode = "wave"  # wave (recording) | processing (STT + LLM running)
         self.phase = 0.0    # spinner rotation phase
-        # per-column glyph grid; a few cells mutate each tick for the rain effect
+        # per-column glyph grid; rows scroll downward for the falling-rain effect
         self.grid = [
             [random.choice(MATRIX_CHARS) for _ in range(MAX_ROWS)]
             for _ in range(BAR_COUNT)
@@ -55,7 +55,11 @@ class WaveView(NSView):
             NSFont.boldSystemFontOfSize_(CHAR_H)
         return self
 
-    def mutate_grid(self):
+    def scroll_grid(self):
+        """Shift every column's glyphs one row toward the bottom (Matrix rain)."""
+        for col in self.grid:
+            col.pop(0)
+            col.append(random.choice(MATRIX_CHARS))
         for _ in range(8):
             self.grid[random.randrange(BAR_COUNT)][random.randrange(MAX_ROWS)] = \
                 random.choice(MATRIX_CHARS)
@@ -80,18 +84,19 @@ class WaveView(NSView):
                     ((x, y), (dot_r * 2, dot_r * 2))
                 ).fill()
         else:
-            # digital-rain waveform: columns of green 0/1, height follows the
-            # audio level, brightest glyph at the head (top), dimmer below
+            # fixed equalizer: each column sits at its own frequency band and
+            # rises from the bottom with that band's energy; glyphs inside
+            # stream downward like the film's digital rain
             pad = 16
             col_w = (b.size.width - 2 * pad) / BAR_COUNT
-            for i, lv in enumerate(self.levels):
-                n = max(1, int(round(min(1.0, lv * 10) * MAX_ROWS)))
+            base = LABEL_H + 2
+            for i, lv in enumerate(self.cols):
+                n = max(1, int(round(min(1.0, lv) * MAX_ROWS)))
                 x = pad + i * col_w
-                y0 = LABEL_H + (wave_h - n * CHAR_H) / 2
                 for r in range(n):
                     t = r / (n - 1) if n > 1 else 1.0
-                    if r == n - 1:
-                        color = _green(0.75, 1.0, 0.8, 1.0)   # glowing head
+                    if r == n - 1 and n > 1:
+                        color = _green(0.75, 1.0, 0.8, 1.0)   # glowing tip
                     else:
                         color = _green(0.2, 0.9, 0.35, 0.25 + 0.6 * t)
                     attrs = {
@@ -99,7 +104,7 @@ class WaveView(NSView):
                         NSForegroundColorAttributeName: color,
                     }
                     NSString.stringWithString_(self.grid[i][r]).drawAtPoint_withAttributes_(
-                        (x, y0 + r * CHAR_H), attrs
+                        (x, base + r * CHAR_H), attrs
                     )
         # label — Matrix green, centered at the bottom
         style = NSMutableParagraphStyle.alloc().init()
@@ -118,8 +123,10 @@ class WaveView(NSView):
 class Overlay:
     """show()/hide() must be called on the main thread (use AppHelper.callAfter)."""
 
-    def __init__(self, level_fn):
-        self.level_fn = level_fn
+    def __init__(self, bands_fn):
+        self.bands_fn = bands_fn   # bands_fn(n) -> n raw band magnitudes
+        self._peak = 0.5           # adaptive normalization reference
+        self._frame = 0
         screen = NSScreen.mainScreen().frame()
         x = (screen.size.width - PANEL_W) / 2
         self.panel = NSPanel.alloc().initWithContentRect_styleMask_backing_defer_(
@@ -141,13 +148,22 @@ class Overlay:
         if self.view.mode == "processing":
             self.view.phase += 0.35  # spinner speed
         else:
-            self.view.levels.append(self.level_fn())
-            self.view.mutate_grid()  # keep the digital rain alive
+            raw = self.bands_fn(BAR_COUNT)
+            # adaptive peak with slow decay so quiet and loud voices both fill
+            self._peak = max(0.3, self._peak * 0.99, max(raw))
+            for i, v in enumerate(raw):
+                target = min(1.0, v / self._peak)
+                # fast attack, slow decay — columns jump up then fall smoothly
+                self.view.cols[i] = max(target, self.view.cols[i] * 0.78)
+            self._frame += 1
+            if self._frame % 2 == 0:
+                self.view.scroll_grid()  # glyphs fall one row, ~15 rows/s
         self.view.setNeedsDisplay_(True)
 
     def show(self):
         self.view.mode = "wave"
-        self.view.levels.extend([0.02] * BAR_COUNT)
+        self.view.cols = [0.0] * BAR_COUNT
+        self._peak = 0.5
         self.panel.orderFrontRegardless()
         self._timer = NSTimer.scheduledTimerWithTimeInterval_repeats_block_(
             1 / 30.0, True, self._tick
