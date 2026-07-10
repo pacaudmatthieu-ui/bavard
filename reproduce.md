@@ -1,6 +1,6 @@
-# Installer Plume Vocale sur votre Mac 🪶
+# Installer Bavard sur votre Mac 🗣️
 
-Plume Vocale est une app de dictée vocale **100 % hors-ligne** pour **macOS sur Apple Silicon** (M1 à M4).
+Bavard est une app de dictée vocale **100 % hors-ligne** pour **macOS sur Apple Silicon** (M1 à M4).
 Appuyez sur `ctrl+shift` n'importe où → parlez → appuyez à nouveau → un texte propre, ponctué et structuré en paragraphes apparaît à votre curseur. Aucun cloud, aucun abonnement : tout tourne sur votre machine.
 
 Comptez ~15 minutes, téléchargements compris (~3 Go).
@@ -14,8 +14,8 @@ Deux façons d'installer : **avec Claude Code** (recommandé, il fait presque to
 Si vous avez [Claude Code](https://claude.com/claude-code), copiez-collez tel quel le bloc ci-dessous dans une session, et laissez-vous guider. Claude fera tout sauf trois clics de permissions que macOS réserve à l'humain.
 
 ```text
-Installe l'application de dictée vocale « Plume Vocale » sur ce Mac, depuis
-https://github.com/pacaudmatthieu-ui/plume-vocale. C'est une app 100 % locale
+Installe l'application de dictée vocale « Bavard » sur ce Mac, depuis
+https://github.com/pacaudmatthieu-ui/bavard. C'est une app 100 % locale
 (Whisper + Ollama), rien ne part dans le cloud. Suis ces étapes dans l'ordre :
 
 1. Vérifie les prérequis : Mac Apple Silicon (uname -m doit donner arm64),
@@ -59,7 +59,7 @@ https://github.com/pacaudmatthieu-ui/plume-vocale. C'est une app 100 % locale
 
 - Une fois lancé, il tourne discrètement en arrière-plan et écoute en local sur `http://localhost:11434` — une adresse qui n'existe que sur votre ordinateur, inaccessible depuis Internet.
 - `ollama pull qwen3:4b-instruct` télécharge **une seule fois** le modèle (~2,5 Go, comme un gros fichier) ; ensuite tout fonctionne sans connexion.
-- Quand vous dictez, Plume Vocale envoie le texte brut transcrit par Whisper à Ollama, qui le renvoie nettoyé (sans les « euh », avec ponctuation et paragraphes). L'aller-retour se fait en local, en une seconde environ.
+- Quand vous dictez, Bavard envoie le texte brut transcrit par Whisper à Ollama, qui le renvoie nettoyé (sans les « euh », avec ponctuation et paragraphes). L'aller-retour se fait en local, en une seconde environ.
 - Pas de compte, pas d'abonnement, aucune donnée transmise à qui que ce soit. Si vous coupez le Wi-Fi, la dictée fonctionne toujours.
 
 En résumé : **Whisper** (dans l'app) transforme votre voix en texte, **Ollama** (le second cerveau local) rend ce texte propre. Les deux vivent entièrement sur votre Mac.
@@ -89,8 +89,8 @@ ollama pull qwen3:4b-instruct
 
 ```bash
 # Cloner le dépôt et entrer dedans
-git clone https://github.com/pacaudmatthieu-ui/plume-vocale.git
-cd plume-vocale
+git clone https://github.com/pacaudmatthieu-ui/bavard.git
+cd bavard
 
 # Créer un environnement Python isolé dans le projet
 python3.12 -m venv .venv
@@ -109,7 +109,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-L'app affiche `Plume Vocale ready` mais **ne fonctionnera pas encore** : macOS bloque tout tant que les permissions ne sont pas accordées.
+L'app affiche `Bavard ready` mais **ne fonctionnera pas encore** : macOS bloque tout tant que les permissions ne sont pas accordées.
 
 ## 4. Accorder les permissions (une seule fois — lisez bien, c'est LE passage délicat)
 
@@ -155,7 +155,7 @@ sed -e "s|/Users/riadanas/Desktop/Fable 5/VoiceBud-Local-Riad|$(pwd)|g" \
 launchctl load ~/Library/LaunchAgents/com.riadanas.whisperflow.plist
 ```
 
-Plume Vocale démarre maintenant à chaque ouverture de session, sans terminal.
+Bavard démarre maintenant à chaque ouverture de session, sans terminal.
 
 ```bash
 # Redémarrer l'app après un changement de config :

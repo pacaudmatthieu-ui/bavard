@@ -79,7 +79,7 @@ class WaveView(NSView):
             NSForegroundColorAttributeName: NSColor.whiteColor(),
             NSParagraphStyleAttributeName: style,
         }
-        label = "Traitement…" if self.mode == "processing" else "Plume Vocale"
+        label = "Traitement…" if self.mode == "processing" else "Bavard"
         NSString.stringWithString_(label).drawInRect_withAttributes_(
             ((0, 4), (b.size.width, 14)), attrs
         )

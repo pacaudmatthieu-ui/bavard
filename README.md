@@ -1,6 +1,6 @@
-# Plume Vocale 🪶
+# Bavard 🗣️
 
-Dictée vocale 100 % hors-ligne pour macOS (Apple Silicon) — votre voix devient une plume.
+Dictée vocale 100 % hors-ligne pour macOS (Apple Silicon) — parlez, il écrit.
 
 Appuyez sur `ctrl+shift` dans n'importe quelle app → parlez → appuyez à nouveau → un texte propre, ponctué et structuré en paragraphes apparaît à votre curseur. La reconnaissance vocale tourne sur la machine (faster-whisper), le nettoyage (suppression des « euh », ponctuation, majuscules, sauts de ligne entre les idées) passe par un LLM local (Ollama). Aucun cloud, aucun abonnement, aucun audio ne quitte votre Mac.
 
