@@ -1,5 +1,20 @@
 """Transcript cleanup via a local Ollama LLM. Model name comes ONLY from config."""
+import re
+
 import requests
+
+# Small models reliably miss fillers at the very start of the text; strip them
+# deterministically (also covers short utterances that skip the LLM).
+_LEADING_FILLERS = re.compile(
+    r"^(?:\s*(?:euh|heu|hum|um|uh|ben|bah)\b[,.\s]*)+", re.IGNORECASE
+)
+
+
+def _strip_leading_fillers(text):
+    out = _LEADING_FILLERS.sub("", text).lstrip()
+    if not out:
+        return text
+    return out[0].upper() + out[1:]
 
 
 class Cleaner:
@@ -26,16 +41,17 @@ class Cleaner:
     def clean(self, text):
         # LATENCY RULE: short utterances skip the LLM entirely.
         if not self.enabled or not text or len(text.split()) < self.min_words:
-            return text
+            return _strip_leading_fillers(text) if text else text
         try:
             # Small models treat bare text as something to answer, not clean.
             # Wrap it with an explicit instruction + one example to force edit-only behavior.
             prompt = (
-                "Copy the following text exactly, but: delete filler words "
-                "(um, uh, ah, like, you know), fix punctuation and capitalization, "
-                "and fix small grammar slips (wrong tense, repeated words). "
-                "Keep the speaker's own wording and meaning — do not rephrase, "
-                "summarize, or reply to it. Do not add anything.\n\n"
+                "Copy the following text word for word, in its original language. "
+                "Only delete filler words (including at the start), add punctuation "
+                "and apostrophes, capitalize sentence starts, and insert blank "
+                "lines between distinct ideas. Every non-filler word must be kept "
+                "exactly as written. Do not reply to the text, do not add "
+                "anything.\n\n"
                 f"{text}"
             )
             r = requests.post(
@@ -51,7 +67,7 @@ class Cleaner:
                 timeout=30,
             )
             cleaned = r.json().get("response", "").strip()
-            return cleaned or text
+            return _strip_leading_fillers(cleaned) if cleaned else text
         except requests.RequestException as e:
             print(f"Cleanup failed ({e}); using raw transcript.")
             return text

@@ -7,19 +7,26 @@ import sounddevice as sd
 
 
 class Recorder:
-    def __init__(self, sample_rate=16000, channels=1, preroll_ms=500, blocksize=320):
+    def __init__(self, sample_rate=16000, channels=1, preroll_ms=500, blocksize=320,
+                 keep_open=True):
         self.sample_rate = sample_rate
         self.channels = channels
         self.blocksize = blocksize
+        # keep_open=False opens the mic only while recording (no orange mic
+        # indicator when idle) at the cost of the pre-roll buffer.
+        self.keep_open = keep_open
         preroll_blocks = max(1, int(sample_rate * preroll_ms / 1000 / blocksize))
         self._preroll = collections.deque(maxlen=preroll_blocks)
         self._chunks = []
         self._recording = False
         self.level = 0.0
         self._lock = threading.Lock()
-        self._stream = sd.InputStream(
-            samplerate=sample_rate, channels=channels, dtype="float32",
-            blocksize=blocksize, callback=self._callback,
+        self._stream = self._make_stream() if keep_open else None
+
+    def _make_stream(self):
+        return sd.InputStream(
+            samplerate=self.sample_rate, channels=self.channels, dtype="float32",
+            blocksize=self.blocksize, callback=self._callback,
         )
 
     def _callback(self, indata, frames, time_info, status):
@@ -32,7 +39,8 @@ class Recorder:
                 self._preroll.append(block)
 
     def start_stream(self):
-        self._stream.start()
+        if self.keep_open:
+            self._stream.start()
 
     def start(self):
         """Begin recording; the pre-roll buffer is prepended so the first word isn't clipped."""
@@ -40,16 +48,25 @@ class Recorder:
             self._chunks = list(self._preroll)
             self._preroll.clear()
             self._recording = True
+        if not self.keep_open and self._stream is None:
+            self._stream = self._make_stream()
+            self._stream.start()
 
     def stop(self):
         """Stop recording and return mono float32 audio."""
         with self._lock:
             self._recording = False
             chunks, self._chunks = self._chunks, []
+        if not self.keep_open and self._stream is not None:
+            self._stream.stop()
+            self._stream.close()
+            self._stream = None
         if not chunks:
             return np.zeros(0, dtype=np.float32)
         return np.concatenate(chunks).flatten()
 
     def close(self):
-        self._stream.stop()
-        self._stream.close()
+        if self._stream is not None:
+            self._stream.stop()
+            self._stream.close()
+            self._stream = None

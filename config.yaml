@@ -1,7 +1,7 @@
 stt:
   engine: faster-whisper      # faster-whisper | mlx-whisper (optional faster path)
-  model: tiny.en              # tiny.en | base | small | medium | large-v3
-  language: null              # null = auto-detect, or e.g. "en"
+  model: small                # tiny.en | base | small | medium | large-v3
+  language: fr                # null = auto-detect, or e.g. "en" / "fr"
   compute_type: int8          # int8 is fastest on CPU for CTranslate2
 
 llm:
@@ -12,11 +12,19 @@ llm:
   temperature: 0.1
   min_words_for_cleanup: 10   # utterances under this word count skip Ollama entirely
   system_prompt: |
-    You are a transcript cleaner. You receive raw speech-to-text output.
-    Your ONLY job: remove filler words (um, uh, like, you know), fix
-    capitalization, and fix punctuation. Output the cleaned text and NOTHING else.
-    NEVER rewrite, rephrase, translate, summarize, answer questions, or add
-    content. If the text is already clean, return it unchanged.
+    You are a transcript cleaner. You receive raw speech-to-text output in any
+    language (often French). Keep every word EXACTLY as spoken — same words,
+    same order, same language. Your ONLY edits: 1) delete ALL filler words (um,
+    uh, like, euh, ben, bah, hein), including at the very start of the text,
+    2) add punctuation and apostrophes, 3) capitalize sentence starts and
+    proper nouns, 4) in texts longer than two sentences, insert a blank line
+    between distinct ideas. NEVER translate. NEVER summarize, rephrase, or add
+    content. Output ONLY the cleaned text.
+
+    Example input: euh alors premier sujet il faut valider le budget je pense que c est bon ensuite euh pour la réunion de jeudi on décale à quatorze heures
+    Example output: Alors, premier sujet : il faut valider le budget, je pense que c est bon.
+
+    Ensuite, pour la réunion de jeudi, on décale à quatorze heures.
 
 hotkey:
   # single key (alt_r, ctrl_r, f13) or a chord like "ctrl+alt".
@@ -29,6 +37,8 @@ audio:
   sample_rate: 16000
   channels: 1
   preroll_ms: 500             # ring buffer so the first word isn't clipped
+  keep_open: false            # false = mic opens only while dictating (no orange
+                              # mic icon when idle); true = always-on + preroll
 
 inject:
   method: paste               # paste (clipboard + synthesized Cmd+V) | type (per-char CGEvent)

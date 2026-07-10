@@ -1,5 +1,6 @@
 """Text injection at the cursor: clipboard + synthesized Cmd+V (Quartz CGEvent),
 with a per-character Unicode keystroke fallback. Saves/restores the clipboard."""
+import threading
 import time
 
 import Quartz
@@ -50,8 +51,10 @@ def inject(text, cfg):
         return
     old = _get_clipboard() if cfg.get("restore_clipboard", True) else None
     _set_clipboard(text)
-    time.sleep(0.05)  # let the pasteboard settle
+    time.sleep(0.1)  # let the pasteboard settle
     _press_cmd_v()
     if old is not None:
-        time.sleep(0.25)  # let the paste land before restoring
-        _set_clipboard(old)
+        # Slow apps (Electron, browsers) may process Cmd+V well after the event
+        # is posted; restoring too early makes them paste the OLD clipboard.
+        # Restore in the background so the caller (and the overlay) don't wait.
+        threading.Timer(1.0, _set_clipboard, args=(old,)).start()

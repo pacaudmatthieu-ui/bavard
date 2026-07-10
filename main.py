@@ -90,6 +90,7 @@ def main():
         sample_rate=cfg["audio"]["sample_rate"],
         channels=cfg["audio"]["channels"],
         preroll_ms=cfg["audio"]["preroll_ms"],
+        keep_open=cfg["audio"].get("keep_open", True),
     )
     rec.start_stream()
     overlay = Overlay(lambda: rec.level)
@@ -100,17 +101,20 @@ def main():
 
     def process(audio):
         t0 = time.time()
-        raw = stt.transcribe(audio)
-        if not raw:
-            print("(no speech detected)")
-            return
-        text = cleaner.clean(raw)
-        inject.inject(text, cfg["inject"])
-        print(f'→ "{text}"  ({time.time() - t0:.2f}s)')
+        try:
+            raw = stt.transcribe(audio)
+            if not raw:
+                print("(no speech detected)")
+                return
+            text = cleaner.clean(raw)
+            inject.inject(text, cfg["inject"])
+            print(f'→ "{text}"  ({time.time() - t0:.2f}s)')
+        finally:
+            AppHelper.callAfter(overlay.hide)
 
     def on_release():
         audio = rec.stop()
-        AppHelper.callAfter(overlay.hide)
+        AppHelper.callAfter(overlay.processing)
         threading.Thread(target=process, args=(audio,), daemon=True).start()
 
     key = cfg["hotkey"]["key"]
