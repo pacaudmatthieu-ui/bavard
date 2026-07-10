@@ -1,85 +1,128 @@
-# Run VoiceBud on your MacBook
+# Installer Plume Vocale sur votre Mac 🪶
 
-VoiceBud is a fully offline dictation app for **macOS on Apple Silicon** (M1–M4).
-Press `ctrl+shift` anywhere → speak → press again → clean text appears at your cursor.
-No cloud, no subscription. Everything runs on your machine.
+Plume Vocale est une app de dictée vocale **100 % hors-ligne** pour **macOS sur Apple Silicon** (M1 à M4).
+Appuyez sur `ctrl+shift` n'importe où → parlez → appuyez à nouveau → un texte propre, ponctué et structuré en paragraphes apparaît à votre curseur. Aucun cloud, aucun abonnement : tout tourne sur votre machine.
 
-## 1. Prerequisites
+Comptez ~15 minutes, téléchargements compris (~3 Go).
+
+## 1. Prérequis
 
 ```bash
-# Install Homebrew if you don't have it (macOS package manager)
+# Homebrew, le gestionnaire de paquets macOS (sautez si déjà installé)
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-# Install Python 3.12 (the version this project uses)
+# Python 3.12 (la version utilisée par le projet)
 brew install python@3.12
 
-# Install Ollama (runs the local LLM that cleans up your transcripts)
+# Ollama : fait tourner le petit LLM local qui nettoie vos transcriptions
 brew install ollama
 
-# Start the Ollama server (leave it running; or open the Ollama.app which does this for you)
-ollama serve &
+# Démarrer Ollama en service (se relance automatiquement à chaque démarrage du Mac)
+brew services start ollama
 
-# Download the LLM used for transcript cleanup (~2.5 GB, one time)
+# Télécharger le LLM de nettoyage (~2,5 Go, une seule fois)
 ollama pull qwen3:4b-instruct
 ```
 
-## 2. Set up the project
+## 2. Installer le projet
 
 ```bash
-# Clone the repository from GitHub and enter it
-git clone https://github.com/anesriad/VoiceBud-Local-Riad.git
-cd VoiceBud-Local-Riad
+# Cloner le dépôt et entrer dedans
+git clone https://github.com/pacaudmatthieu-ui/plume-vocale.git
+cd plume-vocale
 
-# Create an isolated Python environment inside the project
+# Créer un environnement Python isolé dans le projet
 python3.12 -m venv .venv
 
-# Activate it (your terminal now uses the project's own Python)
+# L'activer
 source .venv/bin/activate
 
-# Install all Python libraries the app needs
+# Installer les bibliothèques nécessaires
 pip install -r requirements.txt
 ```
 
-## 3. Run it
+## 3. Premier lancement
 
 ```bash
-# Start the app (first run downloads the ~75 MB Whisper speech model automatically)
+# Le premier lancement télécharge le modèle vocal Whisper « small » (~460 Mo)
 python main.py
 ```
 
-## 4. Grant permissions (one time)
+L'app affiche `Plume Vocale ready` mais **ne fonctionnera pas encore** : macOS bloque tout tant que les permissions ne sont pas accordées.
 
-macOS will block the app until you allow it. In **System Settings → Privacy & Security**, add your Python binary to:
+## 4. Accorder les permissions (une seule fois — lisez bien, c'est LE passage délicat)
 
-- **Input Monitoring** — lets the app see the global hotkey
-- **Accessibility** — lets it paste text into other apps
-- **Microphone** — macOS asks automatically on your first recording; click Allow
+Il faut autoriser le binaire Python du projet dans **Réglages Système → Confidentialité et sécurité**, dans **deux** listes : **Surveillance de l'entrée** (pour voir le raccourci clavier) et **Accessibilité** (pour coller le texte).
 
-Tip: the settings file picker hides dot-folders. Press `⌘⇧G` in the picker and paste the path printed by `readlink -f .venv/bin/python`, or reveal it with `open -R "$(readlink -f .venv/bin/python)"` and drag the file into the list. Restart the app after granting.
+> ⚠️ **Piège n° 1** : il existe DEUX panneaux « Accessibilité » dans les Réglages Système. Le bon est **à l'intérieur de « Confidentialité et sécurité »**. Celui de la barre latérale principale (fonctions pour malvoyants) n'a rien à voir.
 
-## 5. Use it
+> ⚠️ **Piège n° 2** : le fichier à autoriser est caché dans des dossiers invisibles. Deux méthodes qui marchent :
 
-Click into any text field (Notes, browser, Slack, anywhere):
-
-1. Press `ctrl+shift` → a small waveform pill appears (recording)
-2. Speak naturally — ums and uhs are fine, they get removed
-3. Press `ctrl+shift` again → your cleaned text is pasted at the cursor
-
-## Customize (edit `config.yaml`, then restart)
-
-- **Hotkey**: `hotkey.key` (e.g. `alt_r`, `ctrl+alt`) — `fn` is not possible on macOS
-- **Hold vs toggle**: `hotkey.mode: hold | toggle`
-- **LLM**: `llm.model` — one line to swap (avoid plain `qwen3:4b`: it's the slow "thinking" variant; use `qwen3:4b-instruct`)
-- **Accuracy vs speed**: `stt.model: tiny.en | base | small | medium | large-v3`
-
-## Optional: start automatically at login
+**Méthode A — glisser-déposer (recommandée)** : dans le Terminal, tapez
 
 ```bash
-# Edit com.riadanas.whisperflow.plist first: replace the two absolute paths with YOUR project path.
-# Then install and load it — VoiceBud now starts at every login, no terminal needed.
-cp com.riadanas.whisperflow.plist ~/Library/LaunchAgents/
-launchctl load ~/Library/LaunchAgents/com.riadanas.whisperflow.plist
+open -R "$(readlink -f .venv/bin/python)"
+```
 
-# Logs live here if something misbehaves:
+Une fenêtre Finder s'ouvre avec le fichier `python3.12` sélectionné. Glissez-déposez-le directement dans chacune des deux listes des Réglages Système.
+
+**Méthode B — le sélecteur de fichiers** : cliquez **+** dans la liste, puis dans le sélecteur appuyez sur `⌘⇧G`, collez le chemin affiché par `readlink -f .venv/bin/python`, validez par Entrée.
+
+Dans les deux cas, vérifiez que **l'interrupteur à côté de `python3.12` est activé**, puis **relancez l'app** (`Ctrl+C` puis `python main.py`).
+
+**Micro** : macOS demandera l'autorisation tout seul à votre première dictée — cliquez « Autoriser ».
+
+## 5. Utilisation
+
+Cliquez dans n'importe quel champ de texte (Notes, navigateur, mail, Slack…) :
+
+1. Appuyez sur `ctrl+shift` → une pastille noire avec des ondes violettes apparaît (enregistrement)
+2. Parlez naturellement — les « euh », « ben », « bah » seront supprimés
+3. Appuyez à nouveau sur `ctrl+shift` → la pastille passe en mode « Traitement… » (roue qui tourne), puis le texte propre est collé à votre curseur
+
+Tant que la roue tourne, ça travaille. Les textes longs sont automatiquement ponctués et découpés en paragraphes.
+
+> ⚠️ **Casque Bluetooth** : ne choisissez JAMAIS votre casque Bluetooth comme micro d'entrée (Réglages Système → Son → Entrée). macOS le basculerait en mode « appel » et votre musique perdrait ses basses. Utilisez le micro intégré du Mac ou un micro USB — la qualité de dictée y est d'ailleurs meilleure.
+
+## 6. Démarrage automatique à l'ouverture de session (recommandé)
+
+```bash
+# Adapter les chemins du fichier plist à votre machine, l'installer et le charger :
+sed -e "s|/Users/riadanas/Desktop/Fable 5/VoiceBud-Local-Riad|$(pwd)|g" \
+    -e "s|/Users/riadanas|$HOME|g" \
+    com.riadanas.whisperflow.plist > ~/Library/LaunchAgents/com.riadanas.whisperflow.plist
+launchctl load ~/Library/LaunchAgents/com.riadanas.whisperflow.plist
+```
+
+Plume Vocale démarre maintenant à chaque ouverture de session, sans terminal.
+
+```bash
+# Redémarrer l'app après un changement de config :
+launchctl kickstart -k gui/$(id -u)/com.riadanas.whisperflow
+
+# Les logs, si quelque chose cloche :
 tail -f ~/Library/Logs/whisperflow.log
 ```
+
+## 7. Personnaliser (`config.yaml`, puis redémarrer l'app)
+
+| Réglage | Valeur par défaut | Options |
+|---|---|---|
+| `hotkey.key` | `ctrl+shift` | `alt_r`, `ctrl+alt`… (`fn` impossible sur macOS) |
+| `hotkey.mode` | `toggle` (appui pour démarrer/arrêter) | `hold` (maintenir enfoncé) |
+| `stt.language` | `fr` (fiabilité maximale en français) | `null` = auto-détection, `en`… |
+| `stt.model` | `small` | `base` (plus rapide), `medium` (plus précis) |
+| `audio.keep_open` | `false` (micro fermé au repos, pas d'icône orange) | `true` (toujours ouvert + pre-roll 500 ms) |
+| `llm.model` | `qwen3:4b-instruct` | tout modèle Ollama (évitez `qwen3:4b` tout court : variante « réflexion », lente) |
+
+## Dépannage express
+
+- **Rien ne se colle mais la transcription apparaît dans le log** → permission Accessibilité manquante ou désactivée (section 4)
+- **Le raccourci ne réagit pas** → permission Surveillance de l'entrée manquante, ou l'app n'a pas été relancée après l'octroi
+- **Le texte sort en anglais alors que vous parlez français** → vérifiez `stt.language: fr` dans `config.yaml`
+- **Votre musique Bluetooth devient métallique** → votre casque est passé micro d'entrée ; remettez le micro du Mac (Réglages → Son → Entrée)
+- **Première syllabe coupée** → commencez à parler juste après l'apparition de la pastille, ou passez `audio.keep_open: true`
+
+---
+
+Basé sur [VoiceBud](https://github.com/anesriad/VoiceBud-Local-Riad) d'Anas Riad (MIT).

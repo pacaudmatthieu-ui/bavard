@@ -18,7 +18,7 @@ from cleanup import Cleaner
 from hotkey import PushToTalk
 from transcribe import Transcriber
 
-APP_NAME = "VoiceBud"
+APP_NAME = "Plume Vocale"
 
 
 def check_permissions():
