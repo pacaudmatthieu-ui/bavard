@@ -5,7 +5,22 @@ Appuyez sur `ctrl+shift` n'importe où → parlez → appuyez à nouveau → un 
 
 Comptez ~15 minutes, téléchargements compris (~3 Go).
 
-Deux façons d'installer : **avec Claude Code** (recommandé, il fait presque tout) ou **à la main** (sections 1 à 7).
+Trois façons d'installer : **le script automatique** (recommandé), **avec Claude Code**, ou **à la main** (sections 1 à 7).
+
+---
+
+## 🚀 Installation automatique (recommandée)
+
+Il vous faut juste [Homebrew](https://brew.sh) (si vous ne l'avez pas :
+`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`).
+
+```bash
+git clone https://github.com/pacaudmatthieu-ui/bavard.git
+cd bavard
+./install.sh
+```
+
+Le script installe tout (Python, Ollama + modèle, Whisper, démarrage automatique) et vous guide pour la seule étape que macOS réserve à l'humain : deux glisser-déposer dans les Réglages Système. À la fin, testez directement dans Notes avec `ctrl+shift`.
 
 ---
 

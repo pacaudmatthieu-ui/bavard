@@ -16,18 +16,17 @@ Appuyez sur `ctrl+shift` dans n'importe quelle app → parlez → appuyez à nou
 
 ## Installation
 
-Suivre [reproduce.md](reproduce.md) (~10 minutes). L'essentiel :
+**Prérequis** : un Mac Apple Silicon (M1 ou plus récent) et [Homebrew](https://brew.sh).
 
 ```bash
-brew install python@3.12 ollama
-brew services start ollama
-ollama pull qwen3:4b-instruct
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
+git clone https://github.com/pacaudmatthieu-ui/bavard.git
+cd bavard
+./install.sh
 ```
 
-Puis accorder les permissions macOS (Surveillance de l'entrée, Accessibilité, Micro) au binaire Python du venv — voir [reproduce.md](reproduce.md), et optionnellement installer le LaunchAgent pour un démarrage automatique à l'ouverture de session.
+Le script fait tout (~15 min, ~3 Go de téléchargements) : Python, Ollama et son modèle, Whisper, démarrage automatique à l'ouverture de session. Il ne vous reste que deux glisser-déposer dans les Réglages Système (permissions macOS), guidés pas à pas par le script.
+
+Installation manuelle détaillée, installation assistée par Claude Code et dépannage : voir [reproduce.md](reproduce.md).
 
 ## Personnalisation (`config.yaml`, puis redémarrer)
 
