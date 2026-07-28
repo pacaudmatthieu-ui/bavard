@@ -16,19 +16,30 @@ Appuyez sur `ctrl+shift` dans n'importe quelle app → parlez → appuyez à nou
 
 ## Installation
 
-**Prérequis** : un Mac Apple Silicon (M1 ou plus récent). Comptez ~15 min et ~3 Go de téléchargements.
+**Aucune connaissance technique requise.** Il vous faut simplement :
 
-### Option A — avec Claude Code (le plus simple)
+- un **Mac Apple Silicon** (puce M1 ou plus récente — c'est le cas de tous les Mac vendus depuis fin 2020)
+- l'application **[Claude Code](https://claude.com/claude-code)** d'Anthropic (téléchargez la version Mac et connectez-vous avec un compte Claude)
 
-Si vous avez [Claude Code](https://claude.com/claude-code), copiez-collez tel quel le bloc ci-dessous dans une session, et laissez-vous guider. Claude fera tout sauf trois clics de permissions que macOS réserve à l'humain.
+Ensuite, trois gestes :
+
+1. Ouvrez Claude Code
+2. Copiez le bloc ci-dessous **en entier** (survolez-le : un bouton de copie 📋 apparaît en haut à droite)
+3. Collez-le dans Claude Code, envoyez, et laissez-vous guider
+
+Claude installe tout à votre place (~15 min, ~3 Go de téléchargements, une seule fois). Il vous demandera peut-être votre mot de passe Mac pour certaines installations, et vous guidera pour les deux ou trois clics de permissions que macOS réserve à l'humain. À la fin, vous testez en direct avec lui.
 
 ```text
 Installe l'application de dictée vocale « Bavard » sur ce Mac, depuis
 https://github.com/pacaudmatthieu-ui/bavard. C'est une app 100 % locale
 (Whisper + Ollama), rien ne part dans le cloud. Suis ces étapes dans l'ordre :
 
-1. Vérifie les prérequis : Mac Apple Silicon (uname -m doit donner arm64),
-   Homebrew, Python 3.12 (brew install python@3.12 si absent).
+1. Vérifie les prérequis : Mac Apple Silicon (uname -m doit donner arm64).
+   Si Homebrew est absent, installe-le en expliquant d'abord à l'utilisateur
+   que c'est le gestionnaire de logiciels standard du Mac et que son mot de
+   passe de session sera demandé ; ajoute ensuite /opt/homebrew/bin au PATH
+   si nécessaire. Puis installe Python 3.12 (brew install python@3.12) s'il
+   est absent.
 2. Installe Ollama s'il est absent (brew install ollama), démarre-le en
    service (brew services start ollama), puis télécharge le modèle de
    nettoyage : ollama pull qwen3:4b-instruct (~2,5 Go).
@@ -62,17 +73,13 @@ https://github.com/pacaudmatthieu-ui/bavard. C'est une app 100 % locale
    « Dépannage express » du reproduce.md du repo.
 ```
 
-### Option B — le script d'installation
+### Vous êtes à l'aise avec le Terminal ?
 
-Il vous faut [Homebrew](https://brew.sh), puis dans le Terminal :
+Un script d'installation fait la même chose sans Claude Code (il vous faut [Homebrew](https://brew.sh)) :
 
 ```bash
-git clone https://github.com/pacaudmatthieu-ui/bavard.git
-cd bavard
-./install.sh
+git clone https://github.com/pacaudmatthieu-ui/bavard.git && cd bavard && ./install.sh
 ```
-
-Le script fait tout : Python, Ollama et son modèle, Whisper, démarrage automatique à l'ouverture de session. Il ne vous reste que deux glisser-déposer dans les Réglages Système (permissions macOS), guidés pas à pas par le script.
 
 Installation manuelle détaillée et dépannage : voir [reproduce.md](reproduce.md).
 

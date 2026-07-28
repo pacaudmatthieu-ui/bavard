@@ -5,11 +5,11 @@ Appuyez sur `ctrl+shift` n'importe où → parlez → appuyez à nouveau → un 
 
 Comptez ~15 minutes, téléchargements compris (~3 Go).
 
-Trois façons d'installer : **le script automatique** (recommandé), **avec Claude Code**, ou **à la main** (sections 1 à 7).
+Trois façons d'installer : **avec Claude Code** (recommandé, aucune connaissance technique requise), **le script automatique**, ou **à la main** (sections 1 à 7).
 
 ---
 
-## 🚀 Installation automatique (recommandée)
+## 🚀 Installation par script (pour les utilisateurs du Terminal)
 
 Il vous faut juste [Homebrew](https://brew.sh) (si vous ne l'avez pas :
 `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`).
@@ -33,8 +33,12 @@ Installe l'application de dictée vocale « Bavard » sur ce Mac, depuis
 https://github.com/pacaudmatthieu-ui/bavard. C'est une app 100 % locale
 (Whisper + Ollama), rien ne part dans le cloud. Suis ces étapes dans l'ordre :
 
-1. Vérifie les prérequis : Mac Apple Silicon (uname -m doit donner arm64),
-   Homebrew, Python 3.12 (brew install python@3.12 si absent).
+1. Vérifie les prérequis : Mac Apple Silicon (uname -m doit donner arm64).
+   Si Homebrew est absent, installe-le en expliquant d'abord à l'utilisateur
+   que c'est le gestionnaire de logiciels standard du Mac et que son mot de
+   passe de session sera demandé ; ajoute ensuite /opt/homebrew/bin au PATH
+   si nécessaire. Puis installe Python 3.12 (brew install python@3.12) s'il
+   est absent.
 2. Installe Ollama s'il est absent (brew install ollama), démarre-le en
    service (brew services start ollama), puis télécharge le modèle de
    nettoyage : ollama pull qwen3:4b-instruct (~2,5 Go).
