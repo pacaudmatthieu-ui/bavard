@@ -146,6 +146,16 @@ class MenuBar(NSObject):
         AppHelper.callAfter(self.meet_item.setTitle_, text)
 
     @objc.python_method
+    def _notify(self, message):
+        # osascript: reliable from an unbundled LaunchAgent python, where
+        # NSUserNotification silently fails without a real bundle identifier
+        subprocess.run([
+            "osascript", "-e",
+            f'display notification "{message}" with title "Bavard" '
+            'sound name "Glass"',
+        ])
+
+    @objc.python_method
     def _process(self, folder, duration):
         now = datetime.datetime.now()
         date_str = f"{now:%d/%m/%Y}"
@@ -176,9 +186,13 @@ class MenuBar(NSObject):
             if not self.cfg.get("meeting", {}).get("keep_audio", True):
                 os.remove(wav)
             subprocess.run(["open", folder])
+            self._notify(
+                f"Réunion de {meeting.fmt_duration(duration)} — "
+                "transcription et compte rendu prêts")
             print(f"Réunion prête : {folder}")
         except Exception as e:
             print(f"Traitement de la réunion échoué : {e}")
+            self._notify("Le traitement de la réunion a échoué — voir les logs")
         finally:
             AppHelper.callAfter(self._reset_idle)
 
