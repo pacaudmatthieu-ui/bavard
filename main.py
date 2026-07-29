@@ -70,19 +70,6 @@ def main():
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(1)  # accessory: no Dock icon
 
-    # menu bar icon so VoiceBud is visible/controllable like a normal app
-    from AppKit import NSStatusBar, NSMenu, NSMenuItem
-    status = NSStatusBar.systemStatusBar().statusItemWithLength_(-1)
-    status.button().setTitle_("🎙️")
-    menu = NSMenu.alloc().init()
-    item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
-        f"{APP_NAME} — press {cfg['hotkey']['key']} to dictate", None, "")
-    item.setEnabled_(False)
-    menu.addItem_(item)
-    quit_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_("Quit " + APP_NAME, "terminate:", "q")
-    menu.addItem_(quit_item)
-    status.setMenu_(menu)
-
     print(f"Loading STT model ({cfg['stt']['model']})...")
     stt = Transcriber(cfg["stt"])
     cleaner = Cleaner(cfg["llm"])
@@ -94,6 +81,10 @@ def main():
     )
     rec.start_stream()
     overlay = Overlay(rec.bands)
+
+    # menu bar: status icon, mic picker, meeting recorder
+    import menubar as menubar_mod
+    menubar = menubar_mod.create(cfg, rec, stt)
 
     def on_press():
         rec.start()

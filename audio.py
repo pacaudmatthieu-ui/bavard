@@ -5,6 +5,8 @@ import threading
 import numpy as np
 import sounddevice as sd
 
+import devices
+
 
 class Recorder:
     def __init__(self, sample_rate=16000, channels=1, preroll_ms=500, blocksize=320,
@@ -25,10 +27,29 @@ class Recorder:
         self._stream = self._make_stream() if keep_open else None
 
     def _make_stream(self):
+        # device resolved at every open, so a mic picked in the menu (or an
+        # unplugged one falling back to the built-in mic) applies on the next
+        # dictation without restarting the app
+        index, name, missing = devices.resolve_input_device()
+        if missing:
+            print(f"Micro choisi introuvable — bascule sur « {name} »")
         return sd.InputStream(
             samplerate=self.sample_rate, channels=self.channels, dtype="float32",
-            blocksize=self.blocksize, callback=self._callback,
+            blocksize=self.blocksize, callback=self._callback, device=index,
         )
+
+    @property
+    def stream_open(self):
+        return self._stream is not None
+
+    def restart_stream(self):
+        """Re-open the idle stream after a mic change (keep_open mode only —
+        with keep_open=False the next start() resolves the device anyway)."""
+        if self.keep_open and self._stream is not None and not self._recording:
+            self._stream.stop()
+            self._stream.close()
+            self._stream = self._make_stream()
+            self._stream.start()
 
     def _callback(self, indata, frames, time_info, status):
         block = indata.copy()

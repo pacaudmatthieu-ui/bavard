@@ -11,6 +11,8 @@ Appuyez sur `ctrl+shift` dans n'importe quelle app → parlez → appuyez à nou
 - **Suppression des tics de langage** : euh, ben, bah, hein… y compris en début de phrase
 - **Commandes vocales** : dites « à la ligne », « nouveau paragraphe », « point d'interrogation », « point d'exclamation », « points de suspension », « point-virgule » ou « deux-points » pour insérer la ponctuation correspondante
 - **Micro discret** : le micro ne s'ouvre que pendant la dictée (pas d'icône orange en permanence)
+- **Choix du micro** : Bavard utilise le micro intégré du Mac par défaut (jamais votre casque Bluetooth), et l'icône 🎙️ de la barre de menu permet de basculer sur n'importe quel micro branché (USB, podcast…)
+- **Mode réunion** : menu 🎙️ → « Enregistrer une réunion » pour capter un échange entier ; à l'arrêt, Bavard produit la transcription complète horodatée **et** un compte rendu structuré (essentiel, points abordés, décisions, actions) dans un dossier `~/Documents/Bavard`, toujours 100 % en local
 - **Pastille d'état** : ondes violettes pendant l'enregistrement, roue « Traitement… » pendant la transcription — vous savez toujours où ça en est
 - **Collage fiable** : le presse-papiers est préservé et restauré en arrière-plan
 

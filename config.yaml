@@ -43,3 +43,11 @@ audio:
 inject:
   method: paste               # paste (clipboard + synthesized Cmd+V) | type (per-char CGEvent)
   restore_clipboard: true
+
+# NOTE micro : Bavard enregistre par défaut avec le micro intégré du Mac, même
+# si l'entrée système est réglée ailleurs. Pour changer de micro : icône 🎙️
+# de la barre de menu → Micro (choix mémorisé dans state.json).
+
+meeting:
+  output_dir: ~/Documents/Bavard   # un dossier « Réunion AAAA-MM-JJ HHhMM » par enregistrement
+  keep_audio: true                 # false = supprimer audio.wav après transcription
