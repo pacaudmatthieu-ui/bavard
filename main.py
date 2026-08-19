@@ -12,8 +12,10 @@ import time
 
 import yaml
 
+import context as context_mod
 import history
 import inject
+import modes as modes_mod
 from audio import Recorder
 from cleanup import Cleaner
 from hotkey import PushToTalk
@@ -84,20 +86,34 @@ def main():
     rec.start_stream()
     overlay = Overlay(rec.bands)
     hist = history.History(cfg.get("history"))
+    ctx = context_mod.Context(cfg.get("context"))
+    all_modes = modes_mod.Modes(cfg.get("modes"))
 
-    # menu bar: status icon, mic picker, meeting recorder, history
+    # menu bar: status icon, mic picker, mode picker, history, meeting recorder
     import menubar as menubar_mod
-    menubar = menubar_mod.create(cfg, rec, stt, hist)
+    menubar = menubar_mod.create(cfg, rec, stt, hist, ctx, all_modes)
+
+    # the mode is decided when the hotkey goes down, while the target app still
+    # has focus — by the time we paste, the user may have switched away
+    pending = {}
 
     def on_press():
+        app, title = inject.frontmost_context()
+        key, detected = all_modes.resolve(
+            app, title, override=modes_mod.current_override())
+        pending.update(app=app, mode=key)
+        ctx.reload_if_changed()  # edits to contexte.md apply without a restart
         rec.start()
         AppHelper.callAfter(overlay.show)
+        print(f"[{all_modes.label(key)}{'' if detected else ' — épinglé'}] "
+              f"{app or 'app inconnue'}")
 
     def process(audio):
         t0 = time.time()
         entry = None
+        mode_key = pending.get("mode", modes_mod.DEFAULT)
         try:
-            raw = stt.transcribe(audio)
+            raw = stt.transcribe(audio, initial_prompt=ctx.whisper_prompt())
             if not raw:
                 print("(no speech detected)")
                 return
@@ -105,26 +121,30 @@ def main():
             # text field or a crashed paste can no longer lose the dictation.
             entry = hist.record(raw, audio=audio,
                                 sample_rate=cfg["audio"]["sample_rate"])
-            text = cleaner.clean(raw)
+            text = cleaner.clean(raw, mode=all_modes.spec(mode_key), context=ctx)
             state, app = inject.inject(text, cfg["inject"])
-            hist.finish(entry, text=text, state=state, app=app)
+            hist.finish(entry, text=text, state=state, app=app,
+                        mode=all_modes.label(mode_key))
             entry = None
             if state == "not-pasted":
                 notify("Aucun champ de texte : la dictée est dans le "
                        "presse-papiers (⌘V) et dans l'historique.")
                 print(f'→ "{text}"  (non collé — {app or "app inconnue"})')
             else:
-                print(f'→ "{text}"  ({time.time() - t0:.2f}s)')
+                print(f'→ "{text}"  ({time.time() - t0:.2f}s, '
+                      f'{all_modes.label(mode_key)})')
         except Exception as e:
             if entry is not None:
-                hist.finish(entry, state="failed", error=e)
+                hist.finish(entry, state="failed", error=e,
+                            mode=all_modes.label(mode_key))
                 entry = None
                 notify("La dictée n'a pas pu être collée — elle est dans "
                        "l'historique (menu 🎙️).")
             print(f"Dictation failed: {e}")
         finally:
             if entry is not None:  # interrupted before finish()
-                hist.finish(entry, state="failed")
+                hist.finish(entry, state="failed",
+                            mode=all_modes.label(mode_key))
             AppHelper.callAfter(overlay.hide)
 
     def on_release():
@@ -137,6 +157,8 @@ def main():
     PushToTalk(key, on_press, on_release, mode=mode).start()
     action = "Press" if mode == "toggle" else "Hold"
     print(f"{APP_NAME} ready. {action} [{key}] to dictate ({mode} mode).")
+    if ctx.enabled:
+        print(f"Contexte personnel : {ctx.path}")
     try:
         AppHelper.runEventLoop()
     finally:

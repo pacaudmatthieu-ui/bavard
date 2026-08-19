@@ -42,6 +42,35 @@ def frontmost_app():
         return None
 
 
+def frontmost_context():
+    """-> (app_name, focused_window_title).
+
+    The window title is what tells Gmail or Outlook apart from any other tab
+    when the frontmost app is just « Google Chrome ». Empty when the
+    Accessibility permission is missing — detection then falls back to the app
+    name alone."""
+    app = frontmost_app()
+    try:
+        from ApplicationServices import (
+            AXIsProcessTrusted,
+            AXUIElementCopyAttributeValue,
+            AXUIElementCreateApplication,
+        )
+        if not AXIsProcessTrusted():
+            return app, ""
+        running = NSWorkspace.sharedWorkspace().frontmostApplication()
+        if running is None:
+            return app, ""
+        element = AXUIElementCreateApplication(running.processIdentifier())
+        err, window = AXUIElementCopyAttributeValue(element, "AXFocusedWindow", None)
+        if err != 0 or window is None:
+            return app, ""
+        err, title = AXUIElementCopyAttributeValue(window, "AXTitle", None)
+        return app, str(title) if err == 0 and title else ""
+    except Exception:
+        return app, ""
+
+
 def _has_text_target():
     """True if the focused element looks like it can receive text.
 

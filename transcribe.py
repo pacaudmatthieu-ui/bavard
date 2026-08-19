@@ -27,19 +27,27 @@ class Transcriber:
                 compute_type=cfg.get("compute_type", "int8"),
             )
 
-    def transcribe(self, audio):
-        """audio: mono float32 numpy array at 16kHz. Returns text."""
+    def transcribe(self, audio, initial_prompt=None):
+        """audio: mono float32 numpy array at 16kHz. Returns text.
+
+        initial_prompt biases the decoder toward the speaker's own vocabulary
+        (proper nouns, brands, jargon) so they come back spelled right instead
+        of phonetically mangled. Keep it short — a long prompt makes Whisper
+        drift and invent text."""
         if audio.size == 0:
             return ""
         with self._lock:
             if self._mlx is not None:
-                result = self._mlx.transcribe(audio, language=self.cfg.get("language"))
+                result = self._mlx.transcribe(
+                    audio, language=self.cfg.get("language"),
+                    initial_prompt=initial_prompt)
                 return result.get("text", "").strip()
             segments, _ = self._model.transcribe(
                 audio,
                 language=self.cfg.get("language"),
                 vad_filter=True,
                 beam_size=1,
+                initial_prompt=initial_prompt,
             )
             return " ".join(seg.text.strip() for seg in segments).strip()
 

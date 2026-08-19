@@ -1,4 +1,11 @@
-"""Transcript cleanup via a local Ollama LLM. Model name comes ONLY from config."""
+"""Transcript cleanup via a local Ollama LLM. Model name comes ONLY from config.
+
+Two things shape the result besides the base prompt: the *mode* (where the
+text is going — e-mail, chat, notes, technical) and the user's personal
+*context* (who they are, their vocabulary, their shortcuts). Everything that
+can be done deterministically is done in code rather than asked of the model:
+spoken punctuation, shortcut substitution, blank-line collapsing. Only the
+prose formatting is left to the LLM."""
 import re
 
 import requests
@@ -47,6 +54,12 @@ def _apply_spoken_commands(text):
     return text.strip()
 
 
+def _collapse_blank_lines(text):
+    """Chat and technical modes want one block. Done here, not by the prompt:
+    a 4B model forgets « no blank lines » about a third of the time."""
+    return re.sub(r"\n\s*\n+", "\n", text).strip()
+
+
 class Cleaner:
     def __init__(self, cfg):
         self.cfg = cfg
@@ -68,10 +81,18 @@ class Cleaner:
             print(f"Ollama not reachable at {self.base_url} — cleanup disabled.")
             return False
 
-    def clean(self, text):
+    def clean(self, text, mode=None, context=None):
+        """Raw transcript -> finished text, formatted for `mode`.
+
+        mode: a modes.Modes spec dict (None = plain standard behaviour).
+        context: a context.Context, for vocabulary and shortcuts."""
+        mode = mode or {}
+        if not text:
+            return text
+        min_words = int(mode.get("min_words", self.min_words))
         # LATENCY RULE: short utterances skip the LLM entirely.
-        if not self.enabled or not text or len(text.split()) < self.min_words:
-            return _apply_spoken_commands(_strip_leading_fillers(text)) if text else text
+        if not self.enabled or len(text.split()) < min_words:
+            return self._finish(_strip_leading_fillers(text), mode, context)
         try:
             # Small models treat bare text as something to answer, not clean.
             # Wrap it with an explicit instruction + one example to force edit-only behavior.
@@ -88,7 +109,7 @@ class Cleaner:
                 f"{self.base_url}/api/generate",
                 json={
                     "model": self.model,
-                    "system": self.cfg.get("system_prompt", ""),
+                    "system": self._system_prompt(mode, context),
                     "prompt": prompt,
                     "stream": False,
                     "think": False,  # disable reasoning mode (qwen3 etc.) — cleanup must be instant
@@ -98,8 +119,34 @@ class Cleaner:
             )
             cleaned = r.json().get("response", "").strip()
             if not cleaned:
-                return _apply_spoken_commands(text)
-            return _apply_spoken_commands(_strip_leading_fillers(cleaned))
+                return self._finish(text, mode, context)
+            return self._finish(_strip_leading_fillers(cleaned), mode, context)
         except requests.RequestException as e:
             print(f"Cleanup failed ({e}); using raw transcript.")
-            return text
+            return self._finish(text, mode, context)
+
+    def _system_prompt(self, mode, context):
+        """Base prompt + the mode's formatting rule + who the speaker is.
+
+        Order matters: the mode instruction comes last so it wins over the
+        base prompt when they disagree (e.g. « blank lines between ideas »
+        versus chat mode's single block)."""
+        parts = [self.cfg.get("system_prompt", "")]
+        if context is not None:
+            block = context.llm_block()
+            if block:
+                parts.append(block)
+        if mode.get("prompt"):
+            parts.append(mode["prompt"])
+        return "\n\n".join(p for p in parts if p)
+
+    def _finish(self, text, mode, context):
+        """Everything deterministic, applied whether the LLM ran or not."""
+        text = _apply_spoken_commands(text)
+        if context is not None:
+            text = context.apply_shortcuts(text)
+        if mode.get("one_block"):
+            text = _collapse_blank_lines(text)
+        if mode.get("signature") and context is not None and context.signature:
+            text = text.rstrip() + "\n\n" + context.signature
+        return text

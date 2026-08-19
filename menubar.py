@@ -14,14 +14,16 @@ import objc
 from Foundation import NSObject
 from PyObjCTools import AppHelper
 
+import context as context_mod
 import devices
 import history
 import inject
 import meeting
+import modes as modes_mod
 from notify import notify
 
 
-def create(cfg, rec, stt, hist=None):
+def create(cfg, rec, stt, hist=None, ctx=None, all_modes=None):
     """Build the menu bar controller (plain function: PyObjC reserves short
     selector names like `create` on NSObject subclasses)."""
     self = MenuBar.alloc().init()
@@ -29,6 +31,8 @@ def create(cfg, rec, stt, hist=None):
     self.rec = rec          # dictation Recorder (for stream_open / restart)
     self.stt = stt
     self.history = hist if hist is not None else history.History(cfg.get("history"))
+    self.context = ctx if ctx is not None else context_mod.Context(cfg.get("context"))
+    self.modes = all_modes if all_modes is not None else modes_mod.Modes(cfg.get("modes"))
     self.meeting = meeting.MeetingRecorder(cfg["audio"]["sample_rate"])
     self.busy = False       # transcription / summary in progress
     self.folder = None
@@ -60,6 +64,21 @@ class MenuBar(NSObject):
         mic_root.setSubmenu_(self.mic_menu)
         menu.addItem_(mic_root)
 
+        mode_root = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Mode de dictée", None, "")
+        self.mode_menu = NSMenu.alloc().init()
+        self.mode_menu.setAutoenablesItems_(False)
+        self.mode_menu.setDelegate_(self)
+        mode_root.setSubmenu_(self.mode_menu)
+        menu.addItem_(mode_root)
+
+        ctx_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Mon contexte…", "openContext:", "")
+        ctx_item.setTarget_(self)
+        ctx_item.setToolTip_(
+            "Votre prénom, vos liens, votre vocabulaire — reste sur ce Mac")
+        menu.addItem_(ctx_item)
+
         hist_root = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             "Historique des dictées", None, "")
         self.hist_menu = NSMenu.alloc().init()
@@ -85,6 +104,8 @@ class MenuBar(NSObject):
         # for the same underlying NSMenu
         if menu == self.hist_menu:
             self._build_history_menu(menu)
+        elif menu == self.mode_menu:
+            self._build_mode_menu(menu)
         else:
             self._build_mic_menu(menu)
 
@@ -116,6 +137,48 @@ class MenuBar(NSObject):
         devices.save_choice(name)
         self.rec.restart_stream()  # applies immediately in keep_open mode
         print(f"Micro : {name or 'automatique (micro du Mac)'}")
+
+    # ── dictation mode ───────────────────────────────────────────────────────
+    @objc.python_method
+    def _build_mode_menu(self, menu):
+        menu.removeAllItems()
+        if not self.modes.enabled:
+            self._disabled_item(menu, "Modes désactivés (config.yaml)")
+            return
+        override = modes_mod.current_override()
+        # show what automatic mode would pick right now, for the app in front
+        app, title = inject.frontmost_context()
+        detected = self.modes.detect(app, title)
+
+        auto = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            f"Automatique (ici : {self.modes.label(detected)})", "selectMode:", "")
+        auto.setTarget_(self)
+        auto.setRepresentedObject_(modes_mod.AUTO)
+        auto.setState_(1 if override == modes_mod.AUTO else 0)
+        menu.addItem_(auto)
+        menu.addItem_(NSMenuItem.separatorItem())
+        for key in self.modes.keys():
+            item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                self.modes.label(key), "selectMode:", "")
+            item.setTarget_(self)
+            item.setRepresentedObject_(key)
+            item.setState_(1 if override == key else 0)
+            menu.addItem_(item)
+
+    def selectMode_(self, sender):
+        key = sender.representedObject()
+        modes_mod.save_override(key)
+        name = "automatique" if key == modes_mod.AUTO else self.modes.label(key)
+        print(f"Mode : {name}")
+
+    def openContext_(self, sender):
+        """Open contexte.md in TextEdit (-t forces a plain text editor rather
+        than whatever happens to own .md on this Mac)."""
+        self.context.ensure_file()
+        if os.path.exists(self.context.path):
+            subprocess.run(["open", "-t", self.context.path])
+        else:
+            notify("Le fichier de contexte n'a pas pu être créé.")
 
     # ── dictation history ────────────────────────────────────────────────────
     @objc.python_method

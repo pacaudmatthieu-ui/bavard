@@ -162,6 +162,10 @@ Cliquez dans n'importe quel champ de texte (Notes, navigateur, mail, Slack…) :
 
 Tant que la roue tourne, ça travaille. Les textes longs sont automatiquement ponctués et découpés en paragraphes.
 
+**La mise en forme s'adapte à l'app.** Au moment où vous appuyez sur le raccourci, Bavard regarde quelle application est devant et choisit un mode : **E-mail** (Mail, Gmail, Spark, Outlook), **Message court** (Slack, Messages, WhatsApp), **Technique** (terminal, VS Code, Cursor), **Notes** (Notes, Notion, Obsidian), **Texte standard** ailleurs. Menu 🎙️ → **Mode de dictée** montre celui qui s'appliquerait ici et permet d'en épingler un autre. Pour créer vos propres modes, un fichier `~/Documents/Bavard/modes.yaml` ; chaque mode y accepte `label`, `prompt`, `apps`, `titles`, `min_words`, `one_block`.
+
+**Bavard peut vous connaître.** Menu 🎙️ → **Mon contexte…** ouvre `~/Documents/Bavard/contexte.md`, un fichier qui ne quitte jamais votre Mac. Quatre sections : *Qui je suis* (Bavard sait de qui vous parlez), *Raccourcis* (`mon lien youtube = https://…` — dites la phrase, l'URL s'écrit), *Vocabulaire* (vos noms propres, marques et sigles, pour que la reconnaissance vocale cesse de les écorcher), *Signature*. Les lignes _en italique_ sont des explications et les valeurs entre [crochets] sont à remplacer : tant que les crochets sont là, la ligne est ignorée. Vos modifications s'appliquent à la dictée suivante, sans redémarrer.
+
 **Rien ne se perd.** Chaque dictée est écrite sur le disque dès que la transcription existe — avant le nettoyage, avant le collage. Si vous aviez oublié de cliquer dans un champ de texte, Bavard vous prévient par une notification, garde le texte dans le presse-papiers (un simple ⌘V le récupère) et l'archive quand même. Menu 🎙️ → **Historique des dictées** : les dernières dictées, un clic pour recoller celle qu'il vous faut, et « Ouvrir le dossier de l'historique » pour l'archive complète (`~/Documents/Bavard/historique/AAAA-MM.md`, un fichier par mois). Les dictées marquées ⚠️ sont celles qui n'ont pas atterri où vous pensiez.
 
 > ⚠️ **Casque Bluetooth** : ne choisissez JAMAIS votre casque Bluetooth comme micro d'entrée (Réglages Système → Son → Entrée). macOS le basculerait en mode « appel » et votre musique perdrait ses basses. Utilisez le micro intégré du Mac ou un micro USB — la qualité de dictée y est d'ailleurs meilleure.
@@ -199,6 +203,9 @@ tail -f ~/Library/Logs/whisperflow.log
 | `history.enabled` | `true` (chaque dictée archivée) | `false` = aucune trace sur le disque |
 | `history.keep_days` | `90` | ancienneté max du journal et des audios (`0` = illimité) ; les archives Markdown ne sont jamais purgées |
 | `history.keep_audio` | `false` | `true` = garder aussi le WAV de chaque dictée, pour retranscrire un passage si le micro a coupé |
+| `modes.default` | `auto` (d'après l'app active) | `standard`, `email`, `chat`, `code`, `notes`, ou une de vos clés |
+| `modes.email_signature` | `false` | `true` = ajouter votre signature en mode E-mail (n'activez pas si vous dictez déjà votre formule de politesse) |
+| `context.enabled` | `true` | `false` = ignorer le contexte personnel |
 
 ## Dépannage express
 
@@ -208,6 +215,8 @@ tail -f ~/Library/Logs/whisperflow.log
 - **Votre musique Bluetooth devient métallique** → votre casque est passé micro d'entrée ; remettez le micro du Mac (Réglages → Son → Entrée)
 - **Première syllabe coupée** → commencez à parler juste après l'apparition de la pastille, ou passez `audio.keep_open: true`
 - **Une dictée s'est perdue** → elle est dans l'historique : menu 🎙️ → « Historique des dictées » (clic = recollage), ou `~/Documents/Bavard/historique/`. Même un plantage en pleine dictée n'efface rien : l'entrée est récupérée au redémarrage suivant
+- **Le mauvais mode s'applique** → menu 🎙️ → Mode de dictée : le premier élément indique ce que l'automatique choisirait pour l'app devant vous. Pour une app non reconnue, ajoutez son nom dans `~/Documents/Bavard/modes.yaml` (`email: {apps: [nom de l'app]}`)
+- **Un raccourci du contexte ne se déclenche pas** → vérifiez que la ligne ne contient plus de [crochets], et choisissez une phrase distincte (« mon lien youtube » plutôt que « mon lien »)
 - **Le micro a coupé au milieu / il manque un bout** → passez `history.keep_audio: true` dans `config.yaml` : le WAV de chaque dictée est conservé dans `historique/audio/` et peut être retranscrit
 
 ---

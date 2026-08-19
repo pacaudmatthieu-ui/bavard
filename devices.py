@@ -5,12 +5,9 @@ the system default input is something else (e.g. a Bluetooth headset, which
 would drop music to HFP quality). The user can pick another mic from the menu
 bar; the choice is persisted by name in state.json and survives restarts.
 """
-import json
-import os
-
 import sounddevice as sd
 
-STATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "state.json")
+import state
 
 # substrings identifying the built-in mic across system languages / Mac models
 _BUILTIN_HINTS = ("macbook", "built-in", "intégré", "interne")
@@ -40,23 +37,11 @@ def list_input_devices():
 
 def current_choice():
     """The mic name picked in the menu, or None for automatic (built-in)."""
-    try:
-        with open(STATE_PATH) as f:
-            return json.load(f).get("mic")
-    except Exception:
-        return None
+    return state.get("mic")
 
 
 def save_choice(name):
-    data = {}
-    try:
-        with open(STATE_PATH) as f:
-            data = json.load(f)
-    except Exception:
-        pass
-    data["mic"] = name
-    with open(STATE_PATH, "w") as f:
-        json.dump(data, f)
+    state.set("mic", name)
 
 
 def resolve_input_device():

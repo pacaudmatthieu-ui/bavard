@@ -44,6 +44,27 @@ inject:
   method: paste               # paste (clipboard + synthesized Cmd+V) | type (per-char CGEvent)
   restore_clipboard: true
 
+# Modes de dictée : la mise en forme s'adapte à l'endroit où vous écrivez.
+# En automatique, Bavard reconnaît l'app active au moment où vous appuyez sur
+# le raccourci (E-mail dans Mail / Gmail / Outlook, Message court dans Slack ou
+# Messages, Technique dans un terminal ou un éditeur de code, Notes dans Notes
+# ou Notion, Texte standard partout ailleurs). Menu 🎙️ → Mode de dictée pour
+# épingler un mode. Vos propres modes : ~/Documents/Bavard/modes.yaml
+modes:
+  enabled: true
+  default: auto            # auto = d'après l'app active ; ou une clé de mode
+  email_signature: false   # true = ajouter votre signature en mode E-mail.
+                           # À n'activer que si vous ne dictez PAS votre
+                           # formule de politesse, sinon vous en aurez deux.
+  user_modes: ~/Documents/Bavard/modes.yaml
+
+# Contexte personnel : qui vous êtes, vos liens, votre vocabulaire métier.
+# Le fichier reste sur votre Mac — jamais versionné, jamais envoyé nulle part.
+# Menu 🎙️ → « Mon contexte… » pour l'ouvrir.
+context:
+  enabled: true
+  path: ~/Documents/Bavard/contexte.md
+
 # NOTE micro : Bavard enregistre par défaut avec le micro intégré du Mac, même
 # si l'entrée système est réglée ailleurs. Pour changer de micro : icône 🎙️
 # de la barre de menu → Micro (choix mémorisé dans state.json).

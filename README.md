@@ -12,6 +12,8 @@ Appuyez sur `ctrl+shift` dans n'importe quelle app → parlez → appuyez à nou
 - **Commandes vocales** : dites « à la ligne », « nouveau paragraphe », « point d'interrogation », « point d'exclamation », « points de suspension », « point-virgule » ou « deux-points » pour insérer la ponctuation correspondante
 - **Micro discret** : le micro ne s'ouvre que pendant la dictée (pas d'icône orange en permanence)
 - **Choix du micro** : Bavard utilise le micro intégré du Mac par défaut (jamais votre casque Bluetooth), et l'icône 🎙️ de la barre de menu permet de basculer sur n'importe quel micro branché (USB, podcast…)
+- **Modes de dictée** : la mise en forme s'adapte à l'endroit où vous écrivez. Bavard reconnaît l'app active au moment où vous appuyez sur le raccourci — **E-mail** dans Mail, Gmail, Spark ou Outlook (salutation et formule de politesse sur leur ligne, paragraphes aérés), **Message court** dans Slack ou Messages (un seul bloc, ton parlé), **Technique** dans un terminal ou un éditeur de code (termes techniques et noms de fichiers intacts), **Notes** dans Notes ou Notion (énumérations en puces), **Texte standard** partout ailleurs. Menu 🎙️ → « Mode de dictée » pour en épingler un
+- **Contexte personnel** : menu 🎙️ → « Mon contexte… » ouvre un fichier où vous mettez votre prénom, vos liens, votre vocabulaire métier. Dites « mon lien YouTube » et l'URL s'écrit ; vos noms propres et sigles cessent d'être écorchés par la reconnaissance vocale. Le fichier reste sur votre Mac
 - **Aucune dictée perdue** : chaque dictée est archivée sur le disque dès que la transcription existe, avant même le collage. Si aucun champ de texte n'était sélectionné, Bavard vous prévient, laisse le texte dans le presse-papiers (⌘V) et le garde dans l'historique. Menu 🎙️ → « Historique des dictées » pour relire ou recoller une dictée en un clic ; archive complète dans `~/Documents/Bavard/historique`
 - **Mode réunion** : menu 🎙️ → « Enregistrer une réunion » pour capter un échange entier ; à l'arrêt, Bavard produit la transcription complète horodatée **et** un compte rendu structuré (essentiel, points abordés, décisions, actions) dans un dossier `~/Documents/Bavard`, toujours 100 % en local
 - **Pastille d'état** : ondes violettes pendant l'enregistrement, roue « Traitement… » pendant la transcription — vous savez toujours où ça en est
@@ -94,6 +96,8 @@ Installation manuelle détaillée et dépannage : voir [reproduce.md](reproduce.
 - `audio.keep_open` : `false` = micro fermé au repos ; `true` = toujours ouvert + pre-roll
 - `llm.model` : le modèle Ollama de nettoyage
 - `history.keep_audio` : `true` pour conserver aussi l'audio de chaque dictée (dépannage micro)
+- `modes.default` : `auto` (d'après l'app active) ou un mode épinglé
+- `modes.email_signature` : `true` pour ajouter votre signature en mode E-mail
 
 ## Crédits
 

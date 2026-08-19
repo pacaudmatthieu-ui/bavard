@@ -76,7 +76,8 @@ class History:
         self._append(entry)
         return entry["id"]
 
-    def finish(self, entry_id, text=None, state="ok", app=None, error=None):
+    def finish(self, entry_id, text=None, state="ok", app=None, error=None,
+               mode=None):
         """Amend an entry once the dictation is done (or has failed), and write
         it to the readable monthly archive."""
         if not self.enabled or entry_id is None:
@@ -86,6 +87,8 @@ class History:
             patch["text"] = text
         if app:
             patch["app"] = app
+        if mode:
+            patch["mode"] = mode
         if error:
             patch["error"] = str(error)
         self._append(patch)
@@ -220,11 +223,13 @@ class History:
 
 
 def _suffix(entry):
-    """Menu/archive marker for a dictation that did not land where expected."""
+    """Archive heading tail: where the text went, and how it was formatted."""
     state = entry.get("state")
     app = entry.get("app")
+    mode = entry.get("mode")
     if state == "ok":
-        return f" — {app}" if app else ""
+        tail = " · ".join(x for x in (app, mode) if x)
+        return f" — {tail}" if tail else ""
     if state == "not-pasted":
         return " — ⚠️ non collé (aucun champ de texte)"
     if state == "failed":
