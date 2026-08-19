@@ -51,3 +51,18 @@ inject:
 meeting:
   output_dir: ~/Documents/Bavard   # un dossier « Réunion AAAA-MM-JJ HHhMM » par enregistrement
   keep_audio: true                 # false = supprimer audio.wav après transcription
+
+# Filet de sécurité : chaque dictée est écrite sur le disque dès que la
+# transcription existe — avant le nettoyage et avant le collage. Rien ne se
+# perd si aucun champ de texte n'était sélectionné, si l'app cible avale le
+# collage ou si Bavard plante en cours de route. Menu 🎙️ → « Historique des
+# dictées » pour relire ou recoller.
+history:
+  enabled: true
+  dir: ~/Documents/Bavard/historique
+  keep_days: 90          # ancienneté max du journal et des audios (0 = illimité) ;
+                         # les archives Markdown mensuelles ne sont jamais purgées
+  keep_audio: false      # true = garder aussi le WAV de chaque dictée, pour
+                         # retranscrire un passage si le micro a coupé
+                         # (≈ 30 Ko par 10 s ; purgé après keep_days)
+  menu_entries: 10       # nombre de dictées listées dans le menu

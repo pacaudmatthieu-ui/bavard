@@ -1,4 +1,5 @@
-"""Menu bar: status icon, mic picker submenu, and the meeting recorder flow.
+"""Menu bar: status icon, mic picker submenu, dictation history, and the
+meeting recorder flow.
 
 Icon states: 🎙️ idle · 🔴 recording a meeting · ⏳ transcribing / writing the
 compte rendu. All AppKit calls happen on the main thread (AppHelper.callAfter
@@ -14,16 +15,20 @@ from Foundation import NSObject
 from PyObjCTools import AppHelper
 
 import devices
+import history
+import inject
 import meeting
+from notify import notify
 
 
-def create(cfg, rec, stt):
+def create(cfg, rec, stt, hist=None):
     """Build the menu bar controller (plain function: PyObjC reserves short
     selector names like `create` on NSObject subclasses)."""
     self = MenuBar.alloc().init()
     self.cfg = cfg
     self.rec = rec          # dictation Recorder (for stream_open / restart)
     self.stt = stt
+    self.history = hist if hist is not None else history.History(cfg.get("history"))
     self.meeting = meeting.MeetingRecorder(cfg["audio"]["sample_rate"])
     self.busy = False       # transcription / summary in progress
     self.folder = None
@@ -55,6 +60,14 @@ class MenuBar(NSObject):
         mic_root.setSubmenu_(self.mic_menu)
         menu.addItem_(mic_root)
 
+        hist_root = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Historique des dictées", None, "")
+        self.hist_menu = NSMenu.alloc().init()
+        self.hist_menu.setAutoenablesItems_(False)
+        self.hist_menu.setDelegate_(self)
+        hist_root.setSubmenu_(self.hist_menu)
+        menu.addItem_(hist_root)
+
         self.meet_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
             "🔴 Enregistrer une réunion", "toggleMeeting:", "")
         self.meet_item.setTarget_(self)
@@ -66,8 +79,17 @@ class MenuBar(NSObject):
         menu.addItem_(quit_item)
         self.status.setMenu_(menu)
 
-    # ── mic picker (rebuilt each time the submenu opens) ─────────────────────
+    # ── submenus (rebuilt each time they open) ───────────────────────────────
     def menuNeedsUpdate_(self, menu):
+        # == (isEqual:), not `is`: PyObjC may hand out a fresh proxy object
+        # for the same underlying NSMenu
+        if menu == self.hist_menu:
+            self._build_history_menu(menu)
+        else:
+            self._build_mic_menu(menu)
+
+    @objc.python_method
+    def _build_mic_menu(self, menu):
         # rescanning hardware kills open streams, so only when everything is idle
         devices.refresh(safe=not (self.rec.stream_open or self.meeting.active))
         menu.removeAllItems()
@@ -94,6 +116,63 @@ class MenuBar(NSObject):
         devices.save_choice(name)
         self.rec.restart_stream()  # applies immediately in keep_open mode
         print(f"Micro : {name or 'automatique (micro du Mac)'}")
+
+    # ── dictation history ────────────────────────────────────────────────────
+    @objc.python_method
+    def _build_history_menu(self, menu):
+        menu.removeAllItems()
+        entries = self.history.recent() if self.history.enabled else []
+        if not self.history.enabled:
+            self._disabled_item(menu, "Historique désactivé (config.yaml)")
+            return
+        if not entries:
+            self._disabled_item(menu, "Aucune dictée enregistrée")
+        for e in entries:
+            mark = "" if e.get("state") == "ok" else "⚠️ "
+            when = datetime.datetime.fromtimestamp(e["at"]).strftime("%H:%M")
+            item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+                f"{mark}{when}  {history.preview(e['text'])}", "replayEntry:", "")
+            item.setTarget_(self)
+            item.setRepresentedObject_(e["id"])
+            item.setToolTip_(e["text"])
+            menu.addItem_(item)
+        menu.addItem_(NSMenuItem.separatorItem())
+        open_item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(
+            "Ouvrir le dossier de l'historique", "openHistory:", "")
+        open_item.setTarget_(self)
+        menu.addItem_(open_item)
+
+    @objc.python_method
+    def _disabled_item(self, menu, title):
+        item = NSMenuItem.alloc().initWithTitle_action_keyEquivalent_(title, None, "")
+        item.setEnabled_(False)
+        menu.addItem_(item)
+
+    def replayEntry_(self, sender):
+        """Re-paste a past dictation at the cursor (and leave it on the
+        clipboard if there is nowhere to paste it)."""
+        entry = self.history.get(sender.representedObject())
+        if not entry or not entry.get("text"):
+            return
+        threading.Thread(
+            target=self._replay, args=(entry["text"],), daemon=True).start()
+
+    @objc.python_method
+    def _replay(self, text):
+        # the menu is still closing and focus has not returned to the app yet,
+        # so give the pasteboard a longer settle than a normal dictation
+        state, app = inject.inject(text, self.cfg["inject"], settle=0.35)
+        if state == "not-pasted":
+            notify("Aucun champ de texte : la dictée est dans le "
+                   "presse-papiers (⌘V).")
+        else:
+            print(f"Dictée recollée dans {app or 'app active'}")
+
+    def openHistory_(self, sender):
+        """Reveal this month's archive in the Finder (or the folder itself)."""
+        path = self.history.month_file()
+        args = ["open", "-R", path] if path else ["open", self.history.dir]
+        subprocess.run(args)
 
     # ── meeting flow ─────────────────────────────────────────────────────────
     def toggleMeeting_(self, sender):
@@ -147,13 +226,7 @@ class MenuBar(NSObject):
 
     @objc.python_method
     def _notify(self, message):
-        # osascript: reliable from an unbundled LaunchAgent python, where
-        # NSUserNotification silently fails without a real bundle identifier
-        subprocess.run([
-            "osascript", "-e",
-            f'display notification "{message}" with title "Bavard" '
-            'sound name "Glass"',
-        ])
+        notify(message)
 
     @objc.python_method
     def _process(self, folder, duration):

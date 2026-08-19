@@ -12,10 +12,12 @@ import time
 
 import yaml
 
+import history
 import inject
 from audio import Recorder
 from cleanup import Cleaner
 from hotkey import PushToTalk
+from notify import notify
 from transcribe import Transcriber
 
 APP_NAME = "Bavard"
@@ -81,10 +83,11 @@ def main():
     )
     rec.start_stream()
     overlay = Overlay(rec.bands)
+    hist = history.History(cfg.get("history"))
 
-    # menu bar: status icon, mic picker, meeting recorder
+    # menu bar: status icon, mic picker, meeting recorder, history
     import menubar as menubar_mod
-    menubar = menubar_mod.create(cfg, rec, stt)
+    menubar = menubar_mod.create(cfg, rec, stt, hist)
 
     def on_press():
         rec.start()
@@ -92,15 +95,36 @@ def main():
 
     def process(audio):
         t0 = time.time()
+        entry = None
         try:
             raw = stt.transcribe(audio)
             if not raw:
                 print("(no speech detected)")
                 return
+            # On disk before anything can go wrong: a failed cleanup, a missing
+            # text field or a crashed paste can no longer lose the dictation.
+            entry = hist.record(raw, audio=audio,
+                                sample_rate=cfg["audio"]["sample_rate"])
             text = cleaner.clean(raw)
-            inject.inject(text, cfg["inject"])
-            print(f'→ "{text}"  ({time.time() - t0:.2f}s)')
+            state, app = inject.inject(text, cfg["inject"])
+            hist.finish(entry, text=text, state=state, app=app)
+            entry = None
+            if state == "not-pasted":
+                notify("Aucun champ de texte : la dictée est dans le "
+                       "presse-papiers (⌘V) et dans l'historique.")
+                print(f'→ "{text}"  (non collé — {app or "app inconnue"})')
+            else:
+                print(f'→ "{text}"  ({time.time() - t0:.2f}s)')
+        except Exception as e:
+            if entry is not None:
+                hist.finish(entry, state="failed", error=e)
+                entry = None
+                notify("La dictée n'a pas pu être collée — elle est dans "
+                       "l'historique (menu 🎙️).")
+            print(f"Dictation failed: {e}")
         finally:
+            if entry is not None:  # interrupted before finish()
+                hist.finish(entry, state="failed")
             AppHelper.callAfter(overlay.hide)
 
     def on_release():

@@ -162,6 +162,8 @@ Cliquez dans n'importe quel champ de texte (Notes, navigateur, mail, Slack…) :
 
 Tant que la roue tourne, ça travaille. Les textes longs sont automatiquement ponctués et découpés en paragraphes.
 
+**Rien ne se perd.** Chaque dictée est écrite sur le disque dès que la transcription existe — avant le nettoyage, avant le collage. Si vous aviez oublié de cliquer dans un champ de texte, Bavard vous prévient par une notification, garde le texte dans le presse-papiers (un simple ⌘V le récupère) et l'archive quand même. Menu 🎙️ → **Historique des dictées** : les dernières dictées, un clic pour recoller celle qu'il vous faut, et « Ouvrir le dossier de l'historique » pour l'archive complète (`~/Documents/Bavard/historique/AAAA-MM.md`, un fichier par mois). Les dictées marquées ⚠️ sont celles qui n'ont pas atterri où vous pensiez.
+
 > ⚠️ **Casque Bluetooth** : ne choisissez JAMAIS votre casque Bluetooth comme micro d'entrée (Réglages Système → Son → Entrée). macOS le basculerait en mode « appel » et votre musique perdrait ses basses. Utilisez le micro intégré du Mac ou un micro USB — la qualité de dictée y est d'ailleurs meilleure.
 
 ## 6. Démarrage automatique à l'ouverture de session (recommandé)
@@ -194,6 +196,9 @@ tail -f ~/Library/Logs/whisperflow.log
 | `stt.model` | `small` | `base` (plus rapide), `medium` (plus précis) |
 | `audio.keep_open` | `false` (micro fermé au repos, pas d'icône orange) | `true` (toujours ouvert + pre-roll 500 ms) |
 | `llm.model` | `qwen3:4b-instruct` | tout modèle Ollama (évitez `qwen3:4b` tout court : variante « réflexion », lente) |
+| `history.enabled` | `true` (chaque dictée archivée) | `false` = aucune trace sur le disque |
+| `history.keep_days` | `90` | ancienneté max du journal et des audios (`0` = illimité) ; les archives Markdown ne sont jamais purgées |
+| `history.keep_audio` | `false` | `true` = garder aussi le WAV de chaque dictée, pour retranscrire un passage si le micro a coupé |
 
 ## Dépannage express
 
@@ -202,6 +207,8 @@ tail -f ~/Library/Logs/whisperflow.log
 - **Le texte sort en anglais alors que vous parlez français** → vérifiez `stt.language: fr` dans `config.yaml`
 - **Votre musique Bluetooth devient métallique** → votre casque est passé micro d'entrée ; remettez le micro du Mac (Réglages → Son → Entrée)
 - **Première syllabe coupée** → commencez à parler juste après l'apparition de la pastille, ou passez `audio.keep_open: true`
+- **Une dictée s'est perdue** → elle est dans l'historique : menu 🎙️ → « Historique des dictées » (clic = recollage), ou `~/Documents/Bavard/historique/`. Même un plantage en pleine dictée n'efface rien : l'entrée est récupérée au redémarrage suivant
+- **Le micro a coupé au milieu / il manque un bout** → passez `history.keep_audio: true` dans `config.yaml` : le WAV de chaque dictée est conservé dans `historique/audio/` et peut être retranscrit
 
 ---
 
