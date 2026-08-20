@@ -84,7 +84,6 @@ def main():
         keep_open=cfg["audio"].get("keep_open", True),
     )
     rec.start_stream()
-    overlay = Overlay(rec.bands)
     hist = history.History(cfg.get("history"))
     ctx = context_mod.Context(cfg.get("context"))
     all_modes = modes_mod.Modes(cfg.get("modes"))
@@ -97,13 +96,33 @@ def main():
     # has focus — by the time we paste, the user may have switched away
     pending = {}
 
+    def pick_mode(key):
+        """A chip clicked on the overlay: same setting as the menu bar, and it
+        also re-aims the dictation currently being recorded."""
+        modes_mod.save_override(key)
+        resolved, _ = all_modes.resolve(
+            pending.get("app"), pending.get("title", ""), override=key)
+        pending["mode"] = resolved
+        overlay.set_mode_state(key, all_modes.detect(
+            pending.get("app"), pending.get("title", "")))
+        print(f"Mode : {all_modes.label(resolved)}"
+              f"{' (automatique)' if key == modes_mod.AUTO else ''}")
+
+    overlay = Overlay(
+        rec.bands,
+        chips=all_modes.chips() if all_modes.enabled else (),
+        on_pick=pick_mode,
+    )
+
     def on_press():
         app, title = inject.frontmost_context()
-        key, detected = all_modes.resolve(
-            app, title, override=modes_mod.current_override())
-        pending.update(app=app, mode=key)
+        override = modes_mod.current_override()
+        key, detected = all_modes.resolve(app, title, override=override)
+        pending.update(app=app, title=title, mode=key)
         ctx.reload_if_changed()  # edits to contexte.md apply without a restart
         rec.start()
+        AppHelper.callAfter(
+            overlay.set_mode_state, override, all_modes.detect(app, title))
         AppHelper.callAfter(overlay.show)
         print(f"[{all_modes.label(key)}{'' if detected else ' — épinglé'}] "
               f"{app or 'app inconnue'}")
@@ -121,6 +140,9 @@ def main():
             # text field or a crashed paste can no longer lose the dictation.
             entry = hist.record(raw, audio=audio,
                                 sample_rate=cfg["audio"]["sample_rate"])
+            # re-read: a chip clicked on the overlay while the transcription
+            # was running still applies to this dictation
+            mode_key = pending.get("mode", mode_key)
             text = cleaner.clean(raw, mode=all_modes.spec(mode_key), context=ctx)
             state, app = inject.inject(text, cfg["inject"])
             hist.finish(entry, text=text, state=state, app=app,

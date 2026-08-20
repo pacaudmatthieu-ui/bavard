@@ -36,7 +36,7 @@ sont en français.
 | `inject.py` | collage au curseur (presse-papiers + Cmd+V synthétique) |
 | `history.py` | journal des dictées, filet anti-perte |
 | `notify.py` | notifications macOS (osascript) |
-| `overlay.py` | pastille flottante (AppKit pur) |
+| `overlay.py` | pastille flottante (AppKit pur) + pastilles de mode |
 | `menubar.py` | icône de la barre de menu, sous-menus, mode réunion |
 | `meeting.py` | enregistrement long + compte rendu LLM |
 | `prove.py` | preuve bout en bout depuis un WAV (pas un test unitaire) |
@@ -70,6 +70,13 @@ lève pas d'erreur — il corrompt l'affichage plus tard, c'est pire.
 `@objc.python_method` sur toutes les méthodes qui ne sont pas des actions de
 menu. Les actions de menu (`selectMic_`, `toggleMeeting_`…) doivent, elles,
 rester des sélecteurs ObjC — donc **pas** de `@objc.python_method` dessus.
+
+**La pastille ne doit jamais prendre le focus clavier.** Elle est cliquable
+(les pastilles de mode), donc : `NSWindowStyleMaskNonactivatingPanel`,
+`setBecomesKeyOnlyIfNeeded_(True)` et `acceptsFirstMouse_` qui renvoie `True`
+— sans quoi le premier clic serait avalé, et pire, l'app cible perdrait le
+focus et le collage n'aurait plus de destination. `chip_rects()` est l'unique
+source de vérité de la géométrie : dessin et détection du clic la partagent.
 
 **Le presse-papiers est restauré en différé (1 s).** Les apps lentes
 (Electron, navigateurs) traitent le Cmd+V bien après l'envoi de l'événement ;

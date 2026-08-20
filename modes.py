@@ -11,6 +11,7 @@ are merged on top: same key = override a built-in, new key = a new mode.
 
 Mode fields:
   label       French name, shown in the menu
+  short       ≤5 characters, for the chips on the floating overlay
   prompt      instruction appended to the cleanup system prompt (English:
               small models follow English instructions more reliably)
   apps        lowercase substrings matched against the frontmost app name
@@ -30,6 +31,7 @@ USER_MODES_PATH = "~/Documents/Bavard/modes.yaml"
 # Order matters: the first mode whose app/title matches wins.
 BUILT_IN = {
     "email": {
+        "short": "Mail",
         "label": "E-mail",
         "apps": ["mail", "spark", "outlook", "airmail", "thunderbird",
                  "superhuman", "canary", "mimestream", "postbox"],
@@ -46,6 +48,7 @@ BUILT_IN = {
         ),
     },
     "chat": {
+        "short": "Court",
         "label": "Message court",
         "apps": ["slack", "messages", "whatsapp", "discord", "telegram",
                  "teams", "signal", "messenger"],
@@ -58,6 +61,7 @@ BUILT_IN = {
         ),
     },
     "code": {
+        "short": "Tech",
         "label": "Technique",
         "apps": ["terminal", "iterm", "visual studio code", "xcode", "cursor",
                  "warp", "ghostty", "zed", "sublime", "nova", "windsurf",
@@ -73,6 +77,7 @@ BUILT_IN = {
         ),
     },
     "notes": {
+        "short": "Notes",
         "label": "Notes",
         "apps": ["notes", "notion", "obsidian", "bear", "craft", "evernote",
                  "logseq", "drafts"],
@@ -84,6 +89,7 @@ BUILT_IN = {
         ),
     },
     "standard": {
+        "short": "Texte",
         "label": "Texte standard",
         "apps": [],
         "titles": [],
@@ -131,6 +137,19 @@ class Modes:
 
     def label(self, key):
         return self.modes.get(key, {}).get("label", key)
+
+    def short(self, key):
+        """Chip label for the overlay: explicit `short`, else a trimmed label."""
+        spec = self.modes.get(key, {})
+        return spec.get("short") or spec.get("label", key)[:5]
+
+    def chips(self, limit=5):
+        """(key, short) pairs for the overlay strip, AUTO first. Capped: the
+        panel is small, and every mode stays reachable from the menu bar."""
+        pairs = [(AUTO, "Auto")]
+        for key in self.keys()[:limit]:
+            pairs.append((key, self.short(key)))
+        return pairs
 
     def detect(self, app_name, window_title=""):
         """Which mode the focused app calls for."""
